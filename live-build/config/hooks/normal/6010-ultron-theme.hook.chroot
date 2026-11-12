@@ -1,0 +1,83 @@
+#!/bin/sh
+# Derives the Ultron look from packaged upstream themes instead of forking
+# them: a sage-accented copy of Kvantum's KvMojave (glass + solid variants),
+# and graphite folder icons borrowed from Papirus.
+set -e
+
+# ---- Kvantum: UltronGlass / UltronSolid ------------------------------------
+SRC=/usr/share/Kvantum/KvMojave
+[ -f "$SRC/KvMojave.svg" ] || { echo "KvMojave theme missing"; exit 1; }
+
+recolor() {   # blue accents -> sage, warm greys -> neutral graphite
+    sed -e 's/#295e9f/#4f7d68/Ig' -e 's/#3273c3/#86b39c/Ig' \
+        -e 's/#436e99/#4f7d68/Ig' -e 's/#4478ac/#5f8f78/Ig' \
+        -e 's/#81c0ff/#b4d6c4/Ig' -e 's/#3daee9/#86b39c/Ig' \
+        -e 's/#000356/#16302a/Ig' "$1"
+}
+setkey() {    # setkey FILE KEY VALUE (replace in place, key must exist)
+    grep -q "^$2=" "$1" || { echo "kvantum key $2 not found in $1"; exit 1; }
+    sed -i "s|^$2=.*|$2=$3|" "$1"
+}
+
+for variant in Glass Solid; do
+    dst=/usr/share/Kvantum/Ultron${variant}
+    mkdir -p "$dst"
+    recolor "$SRC/KvMojave.svg" > "$dst/Ultron${variant}.svg"
+    cfg="$dst/Ultron${variant}.kvconfig"
+    cp "$SRC/KvMojave.kvconfig" "$cfg"
+    setkey "$cfg" comment "Ultron OS ${variant} (derived from KvMojave by Tsu Jan)"
+    setkey "$cfg" window.color "#1c1e1d"
+    setkey "$cfg" inactive.window.color "#1a1c1b"
+    setkey "$cfg" base.color "#161817b0"
+    setkey "$cfg" inactive.base.color "#161817b0"
+    setkey "$cfg" alt.base.color "#1e2120"
+    setkey "$cfg" inactive.alt.base.color "#1e2120"
+    setkey "$cfg" button.color "#2c2f2e"
+    setkey "$cfg" highlight.color "#86b39c"
+    setkey "$cfg" inactive.highlight.color "#6f9482"
+    setkey "$cfg" tooltip.base.color "#242625"
+    setkey "$cfg" link.color "#7ab2c4"
+    setkey "$cfg" link.visited.color "#aa96c8"
+    if [ "$variant" = Glass ]; then
+        setkey "$cfg" translucent_windows true
+        setkey "$cfg" blurring true
+        setkey "$cfg" popup_blurring true
+        setkey "$cfg" reduce_window_opacity 30
+        setkey "$cfg" reduce_menu_opacity 15
+    else
+        setkey "$cfg" translucent_windows false
+        setkey "$cfg" blurring false
+        setkey "$cfg" popup_blurring false
+        setkey "$cfg" reduce_window_opacity 0
+        setkey "$cfg" reduce_menu_opacity 0
+        setkey "$cfg" base.color "#161817"
+        setkey "$cfg" inactive.base.color "#161817"
+    fi
+done
+
+# ---- Icons: graphite folders -------------------------------------------------
+PAP=/usr/share/icons/Papirus
+ULT=/usr/share/icons/Ultron
+for size in 16x16 22x22 24x24 32x32 48x48 64x64; do
+    [ -d "$PAP/$size/places" ] || continue
+    mkdir -p "$ULT/$size/places"
+    # Papirus exposes each generic name (folder, user-home, folder-music, ...)
+    # as a symlink into its blue set. Mirror every one of those onto grey.
+    for link in "$PAP/$size/places"/*.svg; do
+        [ -L "$link" ] || continue
+        target=$(readlink "$link")
+        case "$target" in *-blue-*|*-blue.svg) ;; *) continue ;; esac
+        case "$(basename "$link")" in *-blue-*|*-blue.svg|*-bluegrey*) continue ;; esac
+        grey=$(printf '%s' "$target" | sed 's/-blue/-grey/')
+        [ -e "$PAP/$size/places/$grey" ] || continue
+        ln -sf "$PAP/$size/places/$grey" "$ULT/$size/places/$(basename "$link")"
+    done
+done
+gtk-update-icon-cache -f -q "$ULT" 2>/dev/null || true
+gtk-update-icon-cache -f -q /usr/share/icons/hicolor 2>/dev/null || true
+
+# ---- Boot splash -------------------------------------------------------------------
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+    plymouth-set-default-theme ultron
+fi
+update-initramfs -u -k all

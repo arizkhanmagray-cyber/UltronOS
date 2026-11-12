@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install Ultron OS
+GenericName=System Installer
+Comment=Install Ultron OS on this computer
+Exec=ultron-installer
+Icon=ultron-os
+Terminal=false
+Categories=Qt;System;
+Keywords=install;installer;setup;calamares;
+StartupWMClass=calamares
+StartupNotify=true

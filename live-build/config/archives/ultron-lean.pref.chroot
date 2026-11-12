@@ -1,0 +1,6 @@
+# Build-time only: keeps "Recommends" from dragging in docs, Debian branding,
+# the Qt5 stack and ~600 MB of extra fonts. Removed again by hook
+# 6090-ultron-cleanup so it never restricts what the user can install later.
+Package: khelpcenter plasma-desktop-doc plasma-workspace-doc plasma-welcome plasma-vault plasma5-integration kgamma kwrited ksshaskpass plasma-firewall konqueror kdeconnect calamares-settings-debian sddm-theme-debian-breeze desktop-base fonts-noto fonts-noto-extra fonts-noto-ui-core fonts-noto-ui-extra fonts-noto-cjk-extra fonts-noto-unhinted
+Pin: release *
+Pin-Priority: -1

@@ -1,0 +1,40 @@
+#!/bin/sh
+# Ultron OS live-session setup. Executed by live-config at boot of the live
+# medium only; the installer deletes this file from the installed system.
+
+LIVE_USER="ultron"
+for _PARAMETER in $(cat /proc/cmdline); do
+    case "${_PARAMETER}" in
+        live-config.username=*|username=*) LIVE_USER="${_PARAMETER#*username=}" ;;
+    esac
+done
+
+# Straight to the desktop, in the Wayland session (live-config's own sddm
+# component only knows the X11 session name).
+cat > /etc/sddm.conf <<CONF
+[Autologin]
+User=${LIVE_USER}
+Session=plasma
+Relogin=false
+CONF
+
+# Never lock or sleep in the middle of an installation.
+cat >> /etc/xdg/kscreenlockerrc <<'CONF'
+
+[Daemon]
+Autolock=false
+LockOnResume=false
+CONF
+cat > /etc/xdg/powerdevilrc <<'CONF'
+[AC][SuspendAndShutdown]
+AutoSuspendAction=0
+[Battery][SuspendAndShutdown]
+AutoSuspendAction=0
+[LowBattery][SuspendAndShutdown]
+AutoSuspendAction=0
+CONF
+
+# The live session has no persistent packages to update.
+rm -f /etc/xdg/autostart/org.kde.discover.notifier.desktop
+
+exit 0

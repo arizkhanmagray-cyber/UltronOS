@@ -1,0 +1,43 @@
+# Ultron OS boot splash.
+# A single breathing dot on black. The sign-in screen picks the same dot up
+# and draws it into the "U" of the wordmark, so power-on to password reads as
+# one continuous motion.
+Window.SetBackgroundTopColor(0.047, 0.051, 0.051);
+Window.SetBackgroundBottomColor(0.047, 0.051, 0.051);
+
+sw = Window.GetWidth();
+sh = Window.GetHeight();
+unit = Math.Min(sw / 1920, sh / 1080);
+if (unit < 0.62) unit = 0.62;
+
+dot.size = Math.Int(22 * unit);
+dot.image = Image("dot.png").Scale(dot.size, dot.size);
+dot.sprite = Sprite(dot.image);
+dot.sprite.SetPosition(Math.Int(sw / 2 - dot.size / 2), Math.Int(sh / 2 - dot.size / 2), 10);
+
+tick = 0;
+fun refresh_callback() {
+    # ~50 calls per second; one breath every ~2.4 s
+    tick++;
+    dot.sprite.SetOpacity(0.62 + 0.38 * Math.Sin(tick / 19));
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# Prompts (disk unlock, fsck messages): plain text below the dot.
+prompt.sprite = Sprite();
+fun display_password_callback(text, bullets) {
+    dots = "";
+    for (i = 0; i < bullets; i++) dots += "*";
+    prompt.image = Image.Text(text + "  " + dots, 0.85, 0.87, 0.86);
+    prompt.sprite.SetImage(prompt.image);
+    prompt.sprite.SetPosition(Math.Int(sw / 2 - prompt.image.GetWidth() / 2), Math.Int(sh / 2 + 60 * unit), 12);
+}
+fun display_normal_callback() { prompt.sprite.SetImage(Image.Text("", 0, 0, 0)); }
+fun display_message_callback(text) {
+    msg.image = Image.Text(text, 0.6, 0.63, 0.62);
+    msg.sprite = Sprite(msg.image);
+    msg.sprite.SetPosition(Math.Int(sw / 2 - msg.image.GetWidth() / 2), Math.Int(sh * 0.9), 12);
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+Plymouth.SetMessageFunction(display_message_callback);

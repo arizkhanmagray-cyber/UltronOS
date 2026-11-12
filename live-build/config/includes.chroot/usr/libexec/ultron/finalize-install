@@ -1,0 +1,27 @@
+#!/bin/sh
+# Runs inside the freshly installed system (chroot) at the end of the
+# Ultron OS installer. Removes everything that only belongs on the live USB.
+set -u
+
+rm -f /usr/share/applications/ultron-installer.desktop \
+      /etc/xdg/autostart/ultron-installer.desktop \
+      /usr/bin/ultron-installer \
+      /usr/lib/live/config/2000-ultron-live
+rm -rf /etc/calamares
+
+# live-config leaves these behind in the squashfs on some builds.
+rm -f /etc/sudoers.d/live /etc/polkit-1/rules.d/sudo_on_live.rules \
+      /etc/polkit-1/localauthority/50-local.d/sudo_on_live.pkla 2>/dev/null
+
+# Dual-boot: let GRUB list Windows / other systems it finds.
+mkdir -p /etc/default/grub.d
+[ -e /etc/default/grub.d/ultron.cfg ] || cat > /etc/default/grub.d/ultron.cfg <<'CFG'
+GRUB_DISABLE_OS_PROBER=false
+GRUB_THEME=/usr/share/grub/themes/ultron/theme.txt
+GRUB_GFXMODE=auto
+CFG
+if command -v update-grub >/dev/null 2>&1; then
+    update-grub || true
+fi
+
+exit 0

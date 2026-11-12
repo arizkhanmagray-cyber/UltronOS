@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+# The build-time "lean" pin must not follow the user into the installed system.
+rm -f /etc/apt/preferences.d/ultron-lean.pref
+apt-get -y clean
+rm -rf /var/lib/apt/lists/* /var/cache/apt/*.bin /tmp/* /var/tmp/* 2>/dev/null || true

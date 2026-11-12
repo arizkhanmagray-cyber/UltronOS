@@ -1,0 +1,6 @@
+[Greeter]
+WallpaperPlugin=org.kde.image
+
+[Greeter][Wallpaper][org.kde.image][General]
+Image=file:///usr/share/wallpapers/Ultron/contents/images/3840x2160.jpg
+PreviewImage=file:///usr/share/wallpapers/Ultron/contents/images/3840x2160.jpg

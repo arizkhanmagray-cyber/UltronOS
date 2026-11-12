@@ -1,0 +1,5 @@
+/* Keeps the installer in step with the desktop without fighting the widget style. */
+#mainApp { background: #1c1e1d; }
+#sidebarApp { background: #141615; }
+#logoApp { min-height: 96px; }
+QPushButton { min-height: 26px; padding: 2px 14px; }

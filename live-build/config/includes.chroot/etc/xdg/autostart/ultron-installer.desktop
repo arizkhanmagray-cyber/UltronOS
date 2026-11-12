@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Install Ultron OS
+Comment=Offer the installer when the live session starts
+Exec=sh -c 'grep -qw boot=live /proc/cmdline && sleep 6 && exec ultron-installer'
+Icon=ultron-os
+Terminal=false
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2
+NoDisplay=true

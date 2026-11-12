@@ -1,0 +1,8 @@
+{
+    "KPlugin": {
+        "Authors": [ { "Name": "Ultron OS Project" } ],
+        "Id": "Ultron",
+        "License": "CC-BY-SA-4.0",
+        "Name": "Still Water"
+    }
+}

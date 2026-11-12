@@ -1,0 +1,45 @@
+# Ultron OS GRUB theme
+desktop-image: "background.png"
+desktop-color: "#0c0d0d"
+title-text: ""
+terminal-font: "Unifont Regular 16"
+
++ boot_menu {
+    left = 30%
+    width = 40%
+    top = 44%
+    height = 36%
+    item_font = "Unifont Regular 16"
+    item_color = "#a9b0ad"
+    selected_item_color = "#ffffff"
+    selected_item_pixmap_style = "select_*.png"
+    item_height = 30
+    item_padding = 8
+    item_spacing = 4
+    icon_width = 0
+    icon_height = 0
+    item_icon_space = 0
+    scrollbar = false
+}
+
++ progress_bar {
+    id = "__timeout__"
+    left = 40%
+    width = 20%
+    top = 84%
+    height = 4
+    show_text = false
+    fg_color = "#86b39c"
+    bg_color = "#2a2d2c"
+    border_color = "#2a2d2c"
+}
+
++ label {
+    left = 0
+    width = 100%
+    top = 92%
+    align = "center"
+    color = "#7c8380"
+    font = "Unifont Regular 16"
+    text = "↑ ↓ select      Enter start      E edit      C command line"
+}

@@ -1,0 +1,16 @@
+[Unit]
+Description=Add the Flathub app repository (first boot with network)
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/ultron/flathub-added
+ConditionKernelCommandLine=!boot=live
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+ExecStartPost=/usr/bin/install -D /dev/null /var/lib/ultron/flathub-added
+Restart=on-failure
+RestartSec=5min
+
+[Install]
+WantedBy=multi-user.target

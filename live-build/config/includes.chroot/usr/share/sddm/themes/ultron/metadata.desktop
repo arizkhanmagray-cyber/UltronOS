@@ -1,0 +1,13 @@
+[SddmGreeterTheme]
+Name=Ultron
+Description=Dot, U, Ultron: animated sign-in for Ultron OS
+Author=Ultron OS Project
+License=MIT
+Type=sddm-theme
+Version=1.0
+Screenshot=preview.png
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=ultron
+Theme-API=2.0
+QtVersion=6

@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [ { "Name": "Ultron OS Project" } ],
+        "Category": "",
+        "Description": "Dark glass desktop: top bar, floating dock, traffic-light windows",
+        "Id": "org.ultronos.desktop",
+        "License": "GPL-3.0-or-later",
+        "Name": "Ultron",
+        "Version": "1.0",
+        "Website": "https://github.com/arizkhanmagray-cyber/UltronOS"
+    },
+    "X-Plasma-APIVersion": "2"
+}

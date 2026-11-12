@@ -1,0 +1,90 @@
+#!/bin/sh
+# ultron-glass — controls translucency and blur for the current user.
+#
+#   ultron-glass auto     glass on real GPUs, off on software rendering (default)
+#   ultron-glass on       always on
+#   ultron-glass off      always off (older GPUs, or if you prefer solid windows)
+#   ultron-glass status   show the mode and what is currently applied
+#
+# Blur is a GPU effect. Without a 3D driver (virtual machines without 3D
+# acceleration, "safe graphics" boot) the CPU would have to do it, which is
+# slow and has been seen to crash the software renderer. "auto" spots that
+# case at login and falls back to solid windows.
+set -eu
+
+conf="${XDG_CONFIG_HOME:-$HOME/.config}"
+state="$conf/ultron-glassrc"
+
+has_gpu() {
+    for dev in /sys/class/drm/card[0-9]*; do
+        [ -e "$dev/device/driver" ] || continue
+        drv=$(basename "$(readlink -f "$dev/device/driver")")
+        case "$drv" in
+            i915|xe|amdgpu|radeon|nouveau|nvidia|nvidia-drm|vmwgfx)
+                return 0 ;;
+            virtio_gpu|virtio-pci)
+                # 3D only if the host offers virgl (feature bit 0)
+                case "$(cat "$dev/device/features" 2>/dev/null || true)" in
+                    1*) return 0 ;;
+                esac ;;
+        esac
+    done
+    return 1
+}
+
+get() { sed -n "s/^$1=//p" "$state" 2>/dev/null | head -n1; }
+
+wanted() {   # prints on|off for the given mode
+    case "$1" in
+        on|off) echo "$1" ;;
+        *) if has_gpu; then echo on; else echo off; fi ;;
+    esac
+}
+
+apply() {    # $1 = on|off
+    if [ "$1" = on ]; then kv=UltronGlass; deco=Ultron; fx=true
+    else kv=UltronSolid; deco=UltronSolid; fx=false; fi
+    mkdir -p "$conf/Kvantum"
+    printf '[General]\ntheme=%s\n' "$kv" > "$conf/Kvantum/kvantum.kvconfig"
+    kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled "$fx"
+    kwriteconfig6 --file kwinrc --group Plugins --key contrastEnabled "$fx"
+    kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key library org.kde.kwin.aurorae
+    kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key theme "__aurorae__svg__$deco"
+}
+
+save() {     # $1 = mode, $2 = applied
+    mkdir -p "$conf"
+    printf 'mode=%s\napplied=%s\n' "$1" "$2" > "$state"
+}
+
+mode=$(get mode); mode=${mode:-auto}
+
+case "${1:-status}" in
+    on|off|auto)
+        mode=$1
+        want=$(wanted "$mode")
+        apply "$want"
+        save "$mode" "$want"
+        qdbus6 org.kde.KWin /KWin reconfigure >/dev/null 2>&1 || true
+        echo "Glass: $want (mode: $mode). Reopen apps to see the change."
+        ;;
+    --session-start)
+        # Called before the window manager starts; only touches config when
+        # the answer changed (new GPU driver, safe-graphics boot, first login).
+        want=$(wanted "$mode")
+        if [ "$(get applied)" != "$want" ]; then
+            apply "$want"
+            save "$mode" "$want"
+        fi
+        ;;
+    status)
+        if has_gpu; then gpu="3D graphics driver found"; else gpu="software rendering"; fi
+        echo "mode: $mode"
+        echo "applied: $(get applied)"
+        echo "detected: $gpu"
+        ;;
+    *)
+        echo "usage: ultron-glass on|off|auto|status" >&2
+        exit 2
+        ;;
+esac

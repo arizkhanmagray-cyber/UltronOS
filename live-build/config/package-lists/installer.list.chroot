@@ -1,0 +1,4 @@
+# --- Graphical installer -----------------------------------------------------
+calamares
+squashfs-tools
+parted

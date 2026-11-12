@@ -1,0 +1,37 @@
+---
+componentName:  ultronos
+
+welcomeStyleCalamares:   false
+welcomeExpandingLogo:    true
+windowExpanding:    normal
+windowSize: 920px,620px
+windowPlacement: center
+sidebar: widget
+navigation: widget
+
+strings:
+    productName:         Ultron OS
+    shortProductName:    Ultron
+    version:             "1.0"
+    shortVersion:        "1.0"
+    versionedName:       Ultron OS 1.0
+    shortVersionedName:  Ultron 1.0
+    bootloaderEntryName: Ultron OS
+    productUrl:          https://github.com/arizkhanmagray-cyber/UltronOS
+    supportUrl:          https://github.com/arizkhanmagray-cyber/UltronOS/issues
+    knownIssuesUrl:      https://github.com/arizkhanmagray-cyber/UltronOS/issues
+    releaseNotesUrl:     https://github.com/arizkhanmagray-cyber/UltronOS/releases
+
+images:
+    productIcon:         "ultron-os.png"
+    productLogo:         "ultron-os.png"
+    productWelcome:      "welcome.png"
+
+style:
+   SidebarBackground:        "#141615"
+   SidebarText:              "#dfe3e1"
+   SidebarTextCurrent:       "#ffffff"
+   SidebarBackgroundCurrent: "#4f7d68"
+
+slideshow:               "show.qml"
+slideshowAPI:            2

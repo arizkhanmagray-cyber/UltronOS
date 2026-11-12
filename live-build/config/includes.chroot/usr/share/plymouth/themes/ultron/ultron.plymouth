@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Ultron
+Description=A breathing dot that the sign-in screen turns into the Ultron wordmark
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/ultron
+ScriptFile=/usr/share/plymouth/themes/ultron/ultron.script

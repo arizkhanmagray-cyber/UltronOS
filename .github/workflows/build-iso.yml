@@ -1,0 +1,83 @@
+name: Build ISO
+
+# Builds the installable Ultron OS image.
+#   * every push that changes the OS definition -> ISO as a workflow artifact
+#   * a tag like v1.0                           -> ISO attached to a GitHub Release
+#   * "Run workflow" button                     -> on demand
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version string baked into the image
+        default: "1.0"
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths:
+      - "live-build/**"
+      - "scripts/build-iso.sh"
+      - "build.sh"
+      - ".github/workflows/build-iso.yml"
+
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # only used to attach the ISO to a release on tag builds
+
+jobs:
+  iso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space on the runner
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force >/dev/null || true
+          df -h /
+
+      - name: Work out the version
+        id: v
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then v="${GITHUB_REF_NAME#v}"
+          elif [ -n "${{ inputs.version }}" ]; then v="${{ inputs.version }}"
+          else v="1.0"; fi
+          echo "version=${v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        env:
+          ULTRON_VERSION: ${{ steps.v.outputs.version }}
+          ULTRON_COMPRESSION: xz
+        run: sudo -E ./build.sh
+
+      - name: Show result
+        run: |
+          ls -lh out/
+          cat out/*.sha256
+
+      - name: Upload ISO (workflow artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultronos-${{ steps.v.outputs.version }}-amd64
+          path: |
+            out/*.iso
+            out/*.sha256
+          compression-level: 0
+          retention-days: 14
+
+      - name: Attach ISO to the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # GitHub refuses release files of 2 GiB or more.
+          size=$(stat -c %s out/*.iso)
+          if [ "$size" -ge 2147483648 ]; then
+            echo "::warning::ISO is ${size} bytes (>= 2 GiB); too large for a release asset. Use the workflow artifact."
+            gh release create "${GITHUB_REF_NAME}" out/*.sha256 --title "Ultron OS ${GITHUB_REF_NAME#v}" --generate-notes
+          else
+            gh release create "${GITHUB_REF_NAME}" out/*.iso out/*.sha256 --title "Ultron OS ${GITHUB_REF_NAME#v}" --generate-notes
+          fi

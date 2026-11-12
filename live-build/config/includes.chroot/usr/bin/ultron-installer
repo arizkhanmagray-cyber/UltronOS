@@ -1,0 +1,30 @@
+#!/bin/sh
+# Starts the Ultron OS installer from the live session.
+set -u
+
+if ! grep -qw 'boot=live' /proc/cmdline; then
+    msg="Ultron OS is already installed on this computer. The installer only runs from the live USB."
+    if command -v kdialog >/dev/null 2>&1; then kdialog --title "Ultron OS" --sorry "$msg"; else echo "$msg" >&2; fi
+    exit 1
+fi
+
+# One installer at a time.
+if pgrep -x calamares >/dev/null 2>&1; then
+    exit 0
+fi
+
+# The live system's own fstab confuses the partitioner; park it while we run.
+[ -e /etc/fstab ] && sudo mv -f /etc/fstab /etc/fstab.live
+
+# The installer runs as root through XWayland, with its own HOME and runtime
+# dir so it never leaves root-owned files in the live user's home.
+xhost +si:localuser:root >/dev/null 2>&1 || true
+sudo install -d -m 0700 /run/ultron-installer
+sudo -E env HOME=/root XDG_RUNTIME_DIR=/run/ultron-installer \
+    QT_QPA_PLATFORM=xcb QT_STYLE_OVERRIDE=Breeze \
+    calamares "$@"
+status=$?
+xhost -si:localuser:root >/dev/null 2>&1 || true
+
+[ -e /etc/fstab.live ] && sudo mv -f /etc/fstab.live /etc/fstab
+exit $status

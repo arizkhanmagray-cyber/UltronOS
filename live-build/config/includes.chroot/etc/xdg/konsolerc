@@ -1,0 +1,9 @@
+[Desktop Entry]
+DefaultProfile=Ultron.profile
+
+[KonsoleWindow]
+RememberWindowSize=false
+ShowMenuBarByDefault=false
+
+[TabBar]
+TabBarVisibility=ShowTabBarWhenNeeded

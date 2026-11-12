@@ -1,0 +1,31 @@
+#!/bin/sh
+# Makes the system identify as Ultron OS while staying upgrade-safe:
+# base-files keeps shipping Debian's os-release into the diverted path.
+set -e
+
+VERSION="1.0"
+
+if [ ! -e /usr/lib/os-release.debian ]; then
+    dpkg-divert --quiet --add --no-rename --divert /usr/lib/os-release.debian /usr/lib/os-release
+    mv /usr/lib/os-release /usr/lib/os-release.debian
+fi
+cat > /usr/lib/os-release <<OSR
+PRETTY_NAME="Ultron OS ${VERSION}"
+NAME="Ultron OS"
+VERSION_ID="${VERSION}"
+VERSION="${VERSION}"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13
+ID=ultronos
+ID_LIKE=debian
+HOME_URL="https://github.com/arizkhanmagray-cyber/UltronOS"
+SUPPORT_URL="https://github.com/arizkhanmagray-cyber/UltronOS/issues"
+BUG_REPORT_URL="https://github.com/arizkhanmagray-cyber/UltronOS/issues"
+LOGO=ultron-os
+ANSI_COLOR="0;37"
+OSR
+ln -sf ../usr/lib/os-release /etc/os-release
+
+printf 'Ultron OS %s \\n \\l\n\n' "${VERSION}" > /etc/issue
+printf 'Ultron OS %s\n' "${VERSION}" > /etc/issue.net
+: > /etc/motd

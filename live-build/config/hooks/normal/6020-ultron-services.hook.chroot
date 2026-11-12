@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+
+systemctl enable sddm.service NetworkManager.service bluetooth.service \
+    systemd-oomd.service ultron-flathub.service fstrim.timer 2>/dev/null || true
+systemctl set-default graphical.target
+
+# Wired networking is handled by NetworkManager (so the tray applet works),
+# not ifupdown.
+if [ -f /etc/network/interfaces ]; then
+    printf 'source /etc/network/interfaces.d/*\n\nauto lo\niface lo inet loopback\n' > /etc/network/interfaces
+fi
+mkdir -p /etc/NetworkManager/conf.d
+printf '[ifupdown]\nmanaged=true\n' > /etc/NetworkManager/conf.d/10-ultron-managed.conf
+
+# Services that cost boot time or RAM and that a desktop does not need running
+# all the time. They still start on demand (socket/dbus activation).
+systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
+systemctl disable cups.service 2>/dev/null || true
+systemctl enable cups.socket 2>/dev/null || true
+
+# Locales: generate en_US now so the live session never falls back to "C".
+if [ -f /etc/locale.gen ]; then
+    sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+    locale-gen >/dev/null
+    update-locale LANG=en_US.UTF-8
+fi

@@ -1,0 +1,168 @@
+# Ultron OS
+
+A clean, dark, glass-style Linux desktop with a one-sitting installer.
+
+![Ultron OS desktop](docs/screenshot.png)
+
+Ultron OS is a **Debian 13 remix**, not a from-scratch operating system. It takes
+Debian's kernel, drivers and 60,000-package archive, and puts a carefully
+configured KDE Plasma 6 desktop and a simplified installer on top. Everything
+that makes it "Ultron" lives in this repository and is applied when the ISO is
+built.
+
+| | |
+|---|---|
+| Base | Debian 13 "trixie", Linux 6.12 LTS |
+| Desktop | KDE Plasma 6.3 on Wayland |
+| Look | Blur + translucency (KWin blur, Kvantum), traffic-light window buttons, top bar, floating dock |
+| Start-up | A dot at boot that draws itself into the **U**, writes out "ltron", then asks for your password |
+| Installer | Calamares: language, region, keyboard, disk, account, done |
+| Apps | Firefox, Dolphin, Konsole, Discover (apt + Flatpak), media players, PDF/image viewers |
+| Target hardware | 64-bit PC, 4 cores, 8 GB RAM (runs on less, see below) |
+| ISO size | about 2 GB |
+
+## From power button to desktop
+
+![Sign-in animation](docs/login-animation.png)
+
+1. **Boot**: a single breathing dot on black (Plymouth theme `ultron`).
+2. **Sign-in**: the dot draws itself into a U, the U writes out "ltron", the
+   wordmark lifts and the password field for your account fades in (SDDM theme
+   `ultron`). Any key skips the animation; typing early does not lose a
+   character. Set `intro=false` in
+   `/usr/share/sddm/themes/ultron/theme.conf` to turn it off.
+3. **Desktop**: top bar, dock, wallpaper.
+
+The password is the one you choose in the installer. If you tick "log in
+automatically" there, step 2 is skipped.
+
+## Get the ISO
+
+There is no pre-built download yet. Two ways to produce one:
+
+**Let GitHub build it.** Open the *Actions* tab of this repository, pick
+**Build ISO**, press **Run workflow**. After roughly 40 minutes the ISO is
+attached to the run as an artifact. Pushing a tag such as `v1.0` additionally
+publishes it as a GitHub Release.
+
+**Build it yourself** on any Linux machine with Docker and about 20 GB free:
+
+```sh
+git clone https://github.com/arizkhanmagray-cyber/UltronOS.git
+cd UltronOS
+./build.sh                          # result: out/ultronos-1.0-amd64.iso
+ULTRON_COMPRESSION=zstd ./build.sh  # much faster build, slightly larger ISO
+```
+
+## Install it
+
+1. Write the ISO to a USB stick (4 GB or larger) with
+   [balenaEtcher](https://etcher.balena.io/), [Rufus](https://rufus.ie/) (choose
+   *DD image* mode) or `dd`.
+2. Boot the computer from the stick. Works with both UEFI (Secure Boot on or
+   off) and legacy BIOS.
+3. The desktop appears and the installer opens by itself. Answer six screens:
+   language, region, keyboard, **where to install**, your name and password,
+   confirm.
+4. Wait about ten minutes, restart, remove the stick.
+
+On the disk screen nothing is pre-selected. *Erase disk* wipes the chosen drive;
+*Install alongside* shrinks an existing Windows partition and sets up a boot
+menu for both. **Back up first either way.**
+
+You can close the installer and just try the system from the USB stick; nothing
+is written to your disk until you confirm on the summary screen.
+
+## System requirements
+
+| | Minimum | Designed for |
+|---|---|---|
+| CPU | 64-bit x86, 2 cores | 4 cores |
+| RAM | 4 GB | 8 GB |
+| Disk | 20 GB | 64 GB SSD |
+| Graphics | anything with a working Linux driver | Intel/AMD integrated or better |
+
+What is done specifically for the 8 GB / 4-core class:
+
+- **zram**: half of RAM (max 4 GB) as compressed swap, with kernel settings
+  tuned for it, so the machine degrades gently instead of freezing when memory
+  fills up.
+- **systemd-oomd** kills the one runaway app instead of letting the whole
+  desktop lock up.
+- **No file-content indexer.** Baloo is off; searching by file name still works.
+- **Lean image.** No office suite, mail client or Qt5 stack preinstalled; add
+  what you need from Discover.
+- **Empty session on login**, shorter animations, small journal.
+- **Glass only where it is cheap.** Blur runs on the GPU. At every login
+  `ultron-glass` checks for a 3D driver; without one (virtual machine without
+  3D acceleration, "safe graphics" boot) it switches to solid windows so the
+  CPU is not asked to do the blurring. `ultron-glass on|off|auto` overrides it.
+
+Measured memory use is listed in [docs/TESTING.md](docs/TESTING.md).
+
+## What is in this repository
+
+```
+build.sh                    build in a container (Docker/Podman)
+scripts/build-iso.sh        the actual build, runs on Debian 13 as root
+scripts/vm-test.sh          boot the ISO in QEMU for a smoke test
+live-build/
+  auto/config               live-build options (base, mirrors, boot, compression)
+  config/package-lists/     what gets installed
+  config/archives/          build-time apt pin that keeps the image lean
+  config/hooks/normal/      OS identity, theme generation, services
+  config/bootloaders/       boot menu of the live USB
+  config/includes.chroot/   files copied into the system:
+    etc/xdg/                  system-wide KDE defaults (colours, fonts, KWin, ...)
+    etc/calamares/            installer flow, settings and branding
+    usr/share/plasma/look-and-feel/org.ultronos.desktop/
+                              the global theme: panel layout, splash
+    usr/share/aurorae/themes/          window frame + traffic lights (glass and solid)
+    usr/share/sddm/themes/ultron/      animated sign-in screen
+    usr/bin/ultron-glass               glass on/off/auto
+    usr/share/color-schemes/           "Ultron Dark"
+    usr/share/wallpapers/Ultron/       default wallpaper
+    usr/share/plymouth/, usr/share/grub/   boot splash (the dot) and boot menu
+assets/                     sources for the artwork (logo SVGs, generators)
+docs/                       design notes and test log
+```
+
+## Change things
+
+- **Default apps**: edit `live-build/config/package-lists/*.list.chroot`.
+- **Panel/dock layout**: `…/look-and-feel/org.ultronos.desktop/contents/layouts/org.kde.plasma.desktop-layout.js`.
+- **Colours**: `…/usr/share/color-schemes/UltronDark.colors`, then mirror the
+  colour groups into `etc/xdg/kdeglobals`.
+- **Logo, wallpaper, window frame**: edit the sources in `assets/`, run
+  `assets/build-assets.sh`, commit the regenerated files.
+- **Installer screens**: `…/etc/calamares/settings.conf` and `modules/*.conf`.
+
+Then rebuild the ISO.
+
+## Known limitations of 1.0
+
+- Tested in QEMU only (BIOS and UEFI, software rendering). **Not yet tested on
+  physical hardware**; treat it as a beta until it has been.
+- Full-disk encryption is disabled in the installer.
+- The quick-settings popup is Plasma's standard system tray, not a custom
+  control-centre panel.
+- Qt apps (file manager, settings, terminal) are translucent; GTK apps such as
+  Firefox are dark but opaque.
+- There is no Ultron package repository: system updates come straight from
+  Debian, and theme updates require a new ISO or copying the files by hand.
+- The EFI boot entry is named `debian`. That is deliberate; see
+  [docs/DESIGN.md](docs/DESIGN.md).
+
+## Credits and licences
+
+Build scripts, configuration and artwork in this repository: MIT (see
+[LICENSE](LICENSE)). The wallpaper and logo are original and generated by the
+scripts in `assets/`.
+
+Built on the work of [Debian](https://www.debian.org/),
+[KDE](https://kde.org/), [Calamares](https://calamares.io/),
+[Kvantum](https://github.com/tsujan/Kvantum) (the widget theme is derived at
+build time from *KvMojave* by Tsu Jan, GPL-3.0) and the
+[Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) icon
+theme. Ultron OS is not affiliated with or endorsed by Debian, KDE, Apple or
+Marvel.
