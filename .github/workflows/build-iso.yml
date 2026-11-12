@@ -2,7 +2,7 @@ name: Build ISO
 
 # Builds the installable Ultron OS image.
 #   * every push that changes the OS definition -> ISO as a workflow artifact
-#   * a tag like v1.0                           -> ISO attached to a GitHub Release
+#   * a tag like v1.0                           -> GitHub Release with the ISO (in parts if over 2 GiB)
 #   * "Run workflow" button                     -> on demand
 on:
   workflow_dispatch:
@@ -16,6 +16,7 @@ on:
     paths:
       - "live-build/**"
       - "scripts/build-iso.sh"
+      - "scripts/publish-release.sh"
       - "build.sh"
       - ".github/workflows/build-iso.yml"
 
@@ -55,6 +56,8 @@ jobs:
 
       - name: Show result
         run: |
+          # the build ran as root; later steps write next to the ISO
+          sudo chown -R "$(id -u):$(id -g)" out
           ls -lh out/
           cat out/*.sha256
 
@@ -68,16 +71,8 @@ jobs:
           compression-level: 0
           retention-days: 14
 
-      - name: Attach ISO to the release
+      - name: Publish the release
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          # GitHub refuses release files of 2 GiB or more.
-          size=$(stat -c %s out/*.iso)
-          if [ "$size" -ge 2147483648 ]; then
-            echo "::warning::ISO is ${size} bytes (>= 2 GiB); too large for a release asset. Use the workflow artifact."
-            gh release create "${GITHUB_REF_NAME}" out/*.sha256 --title "Ultron OS ${GITHUB_REF_NAME#v}" --generate-notes
-          else
-            gh release create "${GITHUB_REF_NAME}" out/*.iso out/*.sha256 --title "Ultron OS ${GITHUB_REF_NAME#v}" --generate-notes
-          fi
+        run: scripts/publish-release.sh "${GITHUB_REF_NAME}" "${{ steps.v.outputs.version }}"

@@ -40,14 +40,24 @@ automatically" there, step 2 is skipped.
 
 ## Get the ISO
 
-There is no pre-built download yet. Two ways to produce one:
+**Download a release.** Open
+[Releases](https://github.com/arizkhanmagray-cyber/UltronOS/releases). The ISO
+is about 2.5 GB, which is over GitHub's 2 GiB per-file limit, so it is attached
+in parts. Download all parts into one folder and join them:
 
-**Let GitHub build it.** The *Build ISO* workflow runs on every push that
-changes the OS definition, and on demand from the *Actions* tab (**Build ISO**
-→ **Run workflow**). After roughly 45 minutes the ISO is attached to the run as
-an artifact (scroll to the bottom of the run page). Pushing a tag such as
-`v1.0` also creates a GitHub Release; the ISO itself is attached to it only if
-it is under GitHub's 2 GiB per-file limit, which it currently is not.
+```
+copy /b ultronos-1.0-amd64.iso.part00 + ultronos-1.0-amd64.iso.part01 ultronos-1.0-amd64.iso   (Windows)
+cat ultronos-1.0-amd64.iso.part* > ultronos-1.0-amd64.iso                                         (Linux, macOS)
+```
+
+Each release page repeats the exact commands and carries a `SHA256SUMS` file
+to check the result.
+
+**Or take the latest build.** The *Build ISO* workflow runs on every push that
+changes the OS definition, and on demand from the *Actions* tab. The ISO is
+attached to the run as a single-file artifact (bottom of the run page; needs a
+GitHub login; kept for 14 days). Pushing a tag such as `v1.1` builds and
+publishes a new release.
 
 **Build it yourself** on any Linux machine with Docker and about 20 GB free:
 
