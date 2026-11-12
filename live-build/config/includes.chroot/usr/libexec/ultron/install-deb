@@ -1,0 +1,29 @@
+#!/bin/sh
+# Root half of ultron-install-file. Run through pkexec, which asks for the
+# password. Installs one local .deb with apt so dependencies are resolved.
+set -u
+export DEBIAN_FRONTEND=noninteractive
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+deb="${1:-}"
+case "$deb" in
+    /*.deb|/*.DEB) ;;
+    *) echo "expected an absolute path to a .deb file"; exit 2 ;;
+esac
+[ -f "$deb" ] || { echo "no such file: $deb"; exit 2; }
+dpkg-deb -f "$deb" Package >/dev/null 2>&1 || { echo "not a valid .deb: $deb"; exit 2; }
+
+# Work on a private copy: the original sits in a user-writable folder and
+# must not be swapped for something else between the prompt and the install.
+work=$(mktemp -d /var/tmp/ultron-deb.XXXXXX)
+trap 'rm -rf "$work"' EXIT
+cp -- "$deb" "$work/package.deb"
+chmod 755 "$work"; chmod 644 "$work/package.deb"
+
+# A fresh install ships without package lists; dependencies cannot be found
+# without them. Refresh if they are missing or more than a day old.
+if [ -z "$(find /var/lib/apt/lists -maxdepth 1 -name '*_Packages*' -mtime -1 2>/dev/null | head -n1)" ]; then
+    apt-get update || echo "warning: could not refresh the package lists (offline?)"
+fi
+
+apt-get install -y "$work/package.deb"

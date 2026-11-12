@@ -86,6 +86,31 @@ network. The flow is trimmed to six screens. Decisions worth knowing:
 - After copying, `finalize-install` deletes the installer and live-only files,
   and the `packages` module removes `live-boot`, `live-config` and Calamares.
 
+## Software files
+
+Stock Plasma opens a double-clicked `.deb` in the archive viewer, which is
+useless to someone who has never seen a terminal. `ultron-install-file` takes
+over the package MIME types:
+
+- `.deb` goes through `apt-get install ./file.deb` (not `dpkg -i`), so
+  dependencies resolve. The root half is a small helper started with `pkexec`
+  under its own polkit action, which gives a readable password prompt. The
+  helper copies the file to a root-owned directory first, so it cannot be
+  swapped between the confirmation and the install, and refreshes the package
+  lists when they are missing (a fresh install ships without them).
+- Flatpak files stay with Discover, which already handles them well.
+- AppImages are run, not installed; `libfuse2t64` is shipped because most
+  AppImages still need FUSE 2.
+- `.run` installers open in a terminal on purpose: they are interactive.
+- `.rpm` gets an explanation instead of an `alien` conversion that works
+  sometimes and breaks systems the rest of the time.
+
+Discover could have been made the `.deb` handler instead. A dedicated handler
+was chosen because its flow is two clicks and a password with a definite
+success or failure message, and because it is testable.
+
+There is no "install without asking" mode and there will not be one.
+
 ## Windows programs
 
 Wine 10 from Debian is preinstalled, including the 32-bit half (`wine32:i386`

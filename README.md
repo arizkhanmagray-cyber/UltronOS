@@ -18,9 +18,10 @@ built.
 | Start-up | A dot at boot that draws itself into the **U**, writes out "ltron", then asks for your password |
 | Installer | Calamares: language, region, keyboard, disk, account, done |
 | Apps | Firefox, Dolphin, Konsole, Discover (apt + Flatpak), media players, PDF/image viewers |
+| Software files | Double-click a `.deb`, AppImage, Flatpak file or vendor `.run` installer: no terminal needed |
 | Windows programs | `.exe` and `.msi` open on double-click through Wine 10 (64- and 32-bit) |
 | Target hardware | 64-bit PC, 4 cores, 8 GB RAM (runs on less, see below) |
-| ISO size | about 2.4 GB |
+| ISO size | about 2.5 GB |
 
 ## From power button to desktop
 
@@ -66,8 +67,9 @@ ULTRON_COMPRESSION=zstd ./build.sh  # much faster build, slightly larger ISO
 1. Write the ISO to a USB stick (4 GB or larger) with
    [balenaEtcher](https://etcher.balena.io/), [Rufus](https://rufus.ie/) (choose
    *DD image* mode) or `dd`.
-2. Boot the computer from the stick. Works with both UEFI (Secure Boot on or
-   off) and legacy BIOS.
+2. Boot the computer from the stick. Both UEFI (including Secure Boot) and
+   legacy BIOS are supported; see [docs/TESTING.md](docs/TESTING.md) for what
+   has been verified.
 3. The desktop appears and the installer opens by itself. Answer six screens:
    language, region, keyboard, **where to install**, your name and password,
    confirm.
@@ -80,6 +82,28 @@ menu for both. **Back up first either way.**
 You can close the installer and just try the system from the USB stick; nothing
 is written to your disk until you confirm on the summary screen.
 
+## Installing software without the terminal
+
+The first place to look is **Discover** (the shopping-bag icon in the dock):
+search, click *Install*. For files you downloaded yourself, double-click works:
+
+| File | What a double-click does |
+|---|---|
+| `.deb` | Shows the package name and version, asks you to confirm and for your password, then installs it with `apt` so anything it depends on is fetched too. Tells you when it is done or, in plain words, why it failed. |
+| `.flatpakref`, `.flatpak` | Opens in Discover with an *Install* button. |
+| `.AppImage` | Asks once, makes the file runnable and starts it. Nothing is installed; delete the file to remove the app. |
+| `.run` | Vendor self-installers: asks, then runs in a terminal window because these installers ask their questions there. |
+| `.rpm` | Explains that this is the Fedora/openSUSE format and what to download instead. Converting RPMs is unreliable, so Ultron OS does not pretend to. |
+
+![Installing a .deb](docs/install-deb.png)
+
+Two things are deliberate. You are always asked before anything runs, and a
+`.deb` always needs your password: a package file from the internet gets full
+control of the computer, and an OS that installed them silently would be an
+OS that installs malware silently. Plain shell scripts (`.sh`) are *not* run on
+double-click for the same reason, and source archives (`.tar.gz`) have no
+generic "install"; look for one of the formats above instead.
+
 ## Windows programs (.exe and .msi)
 
 Double-click a `.exe` or `.msi` in the file manager and it opens with
@@ -87,7 +111,9 @@ Double-click a `.exe` or `.msi` in the file manager and it opens with
 32-bit programs. The first time you open a particular file you are asked to
 confirm, because Wine is a compatibility layer and **not a sandbox**: a Windows
 program (or Windows malware) gets the same access to your home folder as any
-other app. From a terminal the same thing is `ultron-run-windows setup.exe`.
+other app. (The file manager also asks "Execute?" first; that question is
+its own, for any program file.) From a terminal the same thing is
+`ultron-run-windows setup.exe`.
 
 Be realistic about what this is. Linux does not run Windows software natively;
 Wine re-implements Windows well enough for a large share of ordinary desktop
@@ -149,6 +175,7 @@ live-build/
     usr/share/sddm/themes/ultron/      animated sign-in screen
     usr/bin/ultron-glass               glass on/off/auto
     usr/bin/ultron-run-windows         opens .exe / .msi with Wine
+    usr/bin/ultron-install-file        installs .deb, opens AppImage / .run
     usr/share/color-schemes/           "Ultron Dark"
     usr/share/wallpapers/Ultron/       default wallpaper
     usr/share/plymouth/, usr/share/grub/   boot splash (the dot) and boot menu
@@ -170,8 +197,9 @@ Then rebuild the ISO.
 
 ## Known limitations of 1.0
 
-- Tested in QEMU only (BIOS and UEFI, software rendering). **Not yet tested on
-  physical hardware**; treat it as a beta until it has been.
+- Tested in QEMU only (BIOS, and UEFI with Secure Boot; software rendering).
+  **Not yet tested on physical hardware**; treat it as a beta until it has
+  been.
 - Full-disk encryption is disabled in the installer.
 - The quick-settings popup is Plasma's standard system tray, not a custom
   control-centre panel.

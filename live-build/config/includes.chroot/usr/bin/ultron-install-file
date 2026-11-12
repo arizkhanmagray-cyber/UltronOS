@@ -1,0 +1,145 @@
+#!/bin/sh
+# ultron-install-file FILE — what a double-click on a Linux software file runs.
+#
+#   .deb        installed with apt (dependencies resolved), after one
+#               confirmation and your password
+#   .AppImage   made executable and started (asked once per file)
+#   .run        vendor self-installer: confirmed, then run in a terminal
+#   .rpm        explained: wrong package format for this system
+#
+# Flatpak files (.flatpakref, .flatpak) are handled by Discover directly.
+set -u
+
+file="${1:-}"
+if [ -z "$file" ] || [ ! -f "$file" ]; then
+    echo "usage: ultron-install-file FILE" >&2
+    exit 2
+fi
+file=$(realpath "$file")
+name=$(basename "$file")
+TITLE="Install software"
+
+say() { if command -v kdialog >/dev/null 2>&1; then kdialog --title "$TITLE" "$@"; else return 0; fi; }
+
+# Remember files the person has already approved (path + size + mtime).
+state="${XDG_DATA_HOME:-$HOME/.local/share}/ultron"
+approved_list="$state/software-files-allowed"
+key="$file|$(stat -c '%s|%Y' "$file")"
+approved() { grep -qxF "$key" "$approved_list" 2>/dev/null; }
+approve()  { mkdir -p "$state"; printf '%s\n' "$key" >> "$approved_list"; }
+
+install_deb() {
+    pkg=$(dpkg-deb -f "$file" Package 2>/dev/null || true)
+    ver=$(dpkg-deb -f "$file" Version 2>/dev/null || true)
+    arch=$(dpkg-deb -f "$file" Architecture 2>/dev/null || true)
+    summary=$(dpkg-deb -f "$file" Description 2>/dev/null | head -n1)
+    if [ -z "$pkg" ]; then
+        say --sorry "\"$name\" is not a valid .deb package (it may be damaged or incomplete)."
+        exit 1
+    fi
+    case "$arch" in
+        all|amd64|i386) ;;
+        *) say --sorry "\"$name\" is built for a different kind of processor ($arch) and cannot be installed on this computer."
+           exit 1 ;;
+    esac
+
+    current=$(dpkg-query -W -f='${Version}' "$pkg" 2>/dev/null || true)
+    if [ -n "$current" ]; then what="Replace version $current of \"$pkg\" with $ver?"
+    else what="Install \"$pkg\" $ver?"; fi
+
+    say --warningcontinuecancel "$what
+
+$summary
+
+This file did not come from the app store. Software installed this way
+gets full access to the computer, so only continue if you trust where
+you got it." --continue-label "Install" || exit 0
+
+    if ! command -v pkexec >/dev/null 2>&1; then
+        say --sorry "Installing packages needs the \"pkexec\" tool, which is missing from this system."
+        exit 1
+    fi
+
+    log=$(mktemp --tmpdir ultron-install.XXXXXX.log)
+    busy=""
+    if command -v kdialog >/dev/null 2>&1; then
+        busy=$(kdialog --title "$TITLE" --progressbar "Installing $pkg. This can take a minute." 0 2>/dev/null || true)
+    fi
+    pkexec /usr/libexec/ultron/install-deb "$file" >"$log" 2>&1
+    status=$?
+    [ -n "$busy" ] && qdbus6 $busy close >/dev/null 2>&1
+
+    case "$status" in
+        0)   say --msgbox "\"$pkg\" is installed. Look for it in the app menu (click the U)." ;;
+        126) : ;;       # password dialog cancelled: nothing happened, say nothing
+        127) say --detailedsorry "\"$pkg\" was not installed because permission was not granted." "$(tail -n 10 "$log")" ;;
+        *)   say --detailedsorry "\"$pkg\" could not be installed.
+
+The usual causes are a missing internet connection (needed to fetch what
+the package depends on) or a package made for a different Linux system." "$(tail -n 25 "$log")" ;;
+    esac
+    rm -f "$log"
+    exit "$status"
+}
+
+run_appimage() {
+    if ! approved; then
+        say --warningcontinuecancel "\"$name\" is a self-contained Linux app (AppImage).
+
+It runs straight from this file and nothing is installed. It gets the same
+access to your files as any other app, so only open it if you trust where
+you got it." --continue-label "Open" || exit 0
+        approve
+    fi
+    chmod u+x "$file" 2>/dev/null || {
+        say --sorry "\"$name\" cannot be made runnable where it is. Copy it to your home folder and try again."
+        exit 1
+    }
+    "$file" >/dev/null 2>&1 &
+    pid=$!
+    sleep 3
+    if ! kill -0 "$pid" 2>/dev/null; then
+        wait "$pid"; rc=$?
+        if [ "$rc" -ne 0 ]; then
+            # Older AppImages need FUSE; this mode works without it.
+            "$file" --appimage-extract-and-run >/dev/null 2>&1 &
+        fi
+    fi
+    exit 0
+}
+
+run_installer() {
+    say --warningcontinuecancel "\"$name\" is an installer program from a software vendor.
+
+It will open in a terminal window and may ask questions there. An installer
+can change anything on this computer, so only continue if you trust where
+you got it." --continue-label "Run installer" || exit 0
+    chmod u+x "$file" 2>/dev/null || true
+    dir=$(dirname "$file")
+    exec konsole --hold --workdir "$dir" -e sh "$file"
+}
+
+explain_rpm() {
+    say --sorry "\"$name\" is an RPM package, made for Fedora, Red Hat or openSUSE.
+Ultron OS uses .deb packages, so this file cannot be installed.
+
+Open Discover and search for the app by name, or look on the download
+page for a \".deb\", \"Debian/Ubuntu\" or \"AppImage\" version."
+    exit 1
+}
+
+lower=$(printf '%s' "$name" | tr 'A-Z' 'a-z')
+case "$lower" in
+    *.deb)      install_deb ;;
+    *.appimage) run_appimage ;;
+    *.rpm)      explain_rpm ;;
+    *.run)      run_installer ;;
+esac
+
+# Unknown extension: decide by content.
+case "$(file -b --mime-type "$file" 2>/dev/null)" in
+    application/vnd.debian.binary-package) install_deb ;;
+    application/x-rpm)                     explain_rpm ;;
+esac
+say --sorry "Ultron OS does not know how to install \"$name\"."
+exit 1

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install Software
+GenericName=Software file installer
+Comment=Installs .deb packages and opens AppImages and vendor installers
+Exec=ultron-install-file %f
+Icon=system-software-install
+Terminal=false
+NoDisplay=true
+MimeType=application/vnd.debian.binary-package;application/x-deb;application/x-debian-package;application/vnd.appimage;application/x-iso9660-appimage;application/x-rpm;application/x-redhat-package-manager;application/x-ultron-run-installer;

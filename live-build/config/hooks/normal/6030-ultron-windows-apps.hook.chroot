@@ -17,3 +17,4 @@ apt-get install -y --no-install-recommends \
 [ -e /usr/lib/i386-linux-gnu/wine/i386-windows/msiexec.exe ] || { echo "32-bit Wine missing"; exit 1; }
 
 update-desktop-database -q /usr/share/applications 2>/dev/null || true
+update-mime-database /usr/share/mime 2>/dev/null || true

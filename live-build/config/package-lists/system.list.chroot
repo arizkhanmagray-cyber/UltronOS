@@ -10,6 +10,11 @@ wget
 ca-certificates
 man-db
 util-linux-extra
+file
+# pkexec shows the password prompt for the software-file installer
+pkexec
+# FUSE 2 runtime: most AppImages still need it
+libfuse2t64
 unzip
 zip
 7zip

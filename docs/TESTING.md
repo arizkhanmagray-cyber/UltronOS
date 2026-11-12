@@ -15,6 +15,7 @@ exercises none of the real GPU, Wi-Fi, audio, suspend or touchpad drivers.
 | Test | Result |
 |---|---|
 | ISO builds from a clean tree (`scripts/build-iso.sh`, zstd) | pass, ~8 min with a warm package cache, ~15 min cold |
+| GitHub Actions workflow builds the `xz` ISO and uploads it as an artifact | pass, 17 min, 2.48 GB |
 | ISO boots, legacy BIOS, themed boot menu | pass |
 | Live session reaches the desktop; top bar, dock, rail, wallpaper as designed | pass |
 | Installer starts by itself in the live session | pass |
@@ -24,9 +25,14 @@ exercises none of the real GPU, Wi-Fi, audio, suspend or touchpad drivers.
 | Installed system: identifies as Ultron OS, no live/installer packages left, no failed units, zram active, apt sources clean | pass |
 | Glass auto-off under software rendering (`ultron-glass` reports "software rendering", solid theme applied) | pass |
 | Glass on with blur (forced on in the VM) | pass, see caveat below |
-| `.exe` double-click path: 32-bit program through `ultron-run-windows` | pass |
+| `.exe`: 32-bit program runs through `ultron-run-windows` | pass |
+| `.exe` opened from the file manager: file manager asks "Execute?", then the trust prompt appears | pass |
 | `.msi` path: self-built test MSI installs through `msiexec` | pass |
-| UEFI boot and install | see "UEFI" below |
+| `.deb` opened from the file manager: confirm → installed by apt → success message; installed program runs | pass (live session, where no password is asked; see below) |
+| File associations: `.deb`, `.AppImage`, `.rpm`, `.run` → `ultron-install-file`; Flatpak files → Discover | pass |
+| ISO boots under UEFI with **Secure Boot enforced** (`mokutil`: "SecureBoot enabled") | pass |
+| Installer on UEFI: creates a 512 MB EFI partition, completes ("All done") | pass |
+| Installed system boots under UEFI + Secure Boot through its own GRUB to the sign-in screen | pass |
 
 ## Numbers (installed system, 4 GB VM, software rendering)
 
@@ -34,6 +40,7 @@ exercises none of the real GPU, Wi-Fi, audio, suspend or touchpad drivers.
   rendering inflates this; expect less with a real GPU driver.
 - Boot: not meaningful under emulation (54 s in the VM).
 - Installed size: about 7 GB (1.8 GB of that is Wine).
+- ISO: 2.64 GB with `zstd`, 2.48 GB with `xz`.
 
 ## Known issue found during testing
 
@@ -45,16 +52,36 @@ cannot occur with a real GPU driver. It is nevertheless the reason
 `ultron-glass` exists in `auto` mode: without a 3D driver the system never
 asks the CPU to blur. If you test in QEMU without KVM, use `-cpu Nehalem`.
 
+## Bugs found and fixed by these tests
+
+- Boot menu fell back to text mode (wrong font path in the GRUB config).
+- Window frame showed tick marks along its edges (stroked SVG hairlines get a
+  padded bounding box; redrawn as filled shapes).
+- File manager opened with every side panel visible (a config override had
+  suppressed its first-run defaults).
+- `hwclock` missing from the image (separate package in Debian 13).
+- Kernel command line carried `splash` twice.
+- Display blanked during a long install in the live session.
+- `.deb` installs failed silently: `pkexec` is a separate package in Debian 13
+  and was not in the image, and the handler treated that as a cancel.
+
 ## Not tested
 
+- The password prompt of the `.deb` installer on an **installed** system. The
+  live session grants admin rights without a password, so the prompt itself
+  was not exercised there.
+- AppImage and `.run` files beyond their file association.
+- Logging in and reaching the desktop on the UEFI-installed system (verified
+  up to the sign-in screen; the login itself was verified on the BIOS install,
+  which shares everything after the bootloader).
 - **Any physical hardware.** Wi-Fi during install, suspend/resume, laptops
   with NVIDIA graphics, HiDPI screens and fractional scaling, touchpads.
 - *Install alongside* (shrinking Windows) and *Replace a partition*.
 - Printing, Bluetooth, Flatpak installs from Discover (the VM had no general
   internet access).
 - Real-world Windows software in Wine beyond the two cases above.
-- The GitHub Actions workflow (written but never executed).
-- An `xz`-compressed release build (CI uses it; local tests used `zstd`).
+- Booting the `xz` ISO produced by GitHub Actions (it built successfully;
+  the local boot and install tests used `zstd` builds of the same tree).
 
 ## How to repeat
 
