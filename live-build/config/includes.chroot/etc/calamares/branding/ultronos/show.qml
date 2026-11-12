@@ -12,16 +12,19 @@ Presentation {
         onTriggered: presentation.goToNextSlide()
     }
 
+    // Backdrop for the whole pane; slides only carry text.
+    Rectangle { anchors.fill: parent; color: "#141615"; z: -2 }
+    Image {
+        anchors.fill: parent
+        source: "slide.jpg"
+        fillMode: Image.PreserveAspectCrop
+        opacity: 0.55
+        z: -1
+    }
+
     component Card : Slide {
         property string headline
         property string blurb
-        Rectangle { anchors.fill: parent; color: "#141615" }
-        Image {
-            anchors.fill: parent
-            source: "slide.jpg"
-            fillMode: Image.PreserveAspectCrop
-            opacity: 0.55
-        }
         Column {
             anchors.centerIn: parent
             width: Math.min(parent.width * 0.78, 640)
@@ -63,6 +66,10 @@ Presentation {
     Card {
         headline: qsTr("Thousands of apps")
         blurb: qsTr("Open Discover to install apps such as LibreOffice, Spotify, VS Code or Steam with one click. Updates for the system and your apps arrive in the same place.")
+    }
+    Card {
+        headline: qsTr("Windows programs too")
+        blurb: qsTr("Double-click a Windows .exe or .msi and Ultron OS opens it with Wine. Many everyday programs work; when a Linux version exists in Discover, prefer that one.")
     }
     Card {
         headline: qsTr("Light on your hardware")

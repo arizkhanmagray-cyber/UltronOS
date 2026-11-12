@@ -18,8 +18,9 @@ built.
 | Start-up | A dot at boot that draws itself into the **U**, writes out "ltron", then asks for your password |
 | Installer | Calamares: language, region, keyboard, disk, account, done |
 | Apps | Firefox, Dolphin, Konsole, Discover (apt + Flatpak), media players, PDF/image viewers |
+| Windows programs | `.exe` and `.msi` open on double-click through Wine 10 (64- and 32-bit) |
 | Target hardware | 64-bit PC, 4 cores, 8 GB RAM (runs on less, see below) |
-| ISO size | about 2 GB |
+| ISO size | about 2.4 GB |
 
 ## From power button to desktop
 
@@ -73,6 +74,27 @@ menu for both. **Back up first either way.**
 You can close the installer and just try the system from the USB stick; nothing
 is written to your disk until you confirm on the summary screen.
 
+## Windows programs (.exe and .msi)
+
+Double-click a `.exe` or `.msi` in the file manager and it opens with
+[Wine](https://www.winehq.org/), which is preinstalled for both 64-bit and
+32-bit programs. The first time you open a particular file you are asked to
+confirm, because Wine is a compatibility layer and **not a sandbox**: a Windows
+program (or Windows malware) gets the same access to your home folder as any
+other app. From a terminal the same thing is `ultron-run-windows setup.exe`.
+
+Be realistic about what this is. Linux does not run Windows software natively;
+Wine re-implements Windows well enough for a large share of ordinary desktop
+programs and installers. What generally does **not** work: games with
+kernel-level anti-cheat, current Microsoft Office and Adobe Creative Cloud,
+and anything that installs a hardware driver. Check
+[appdb.winehq.org](https://appdb.winehq.org/) for a specific program, prefer a
+native Linux version from Discover when one exists, and for stubborn programs
+or games try *Bottles* or *Steam* (both in Discover).
+
+On first use Wine may offer to download "Wine Mono" (needed for .NET
+programs); accept it if you have an internet connection.
+
 ## System requirements
 
 | | Minimum | Designed for |
@@ -90,8 +112,8 @@ What is done specifically for the 8 GB / 4-core class:
 - **systemd-oomd** kills the one runaway app instead of letting the whole
   desktop lock up.
 - **No file-content indexer.** Baloo is off; searching by file name still works.
-- **Lean image.** No office suite, mail client or Qt5 stack preinstalled; add
-  what you need from Discover.
+- **Lean image.** No office suite or mail client preinstalled; add what you
+  need from Discover.
 - **Empty session on login**, shorter animations, small journal.
 - **Glass only where it is cheap.** Blur runs on the GPU. At every login
   `ultron-glass` checks for a 3D driver; without one (virtual machine without
@@ -120,6 +142,7 @@ live-build/
     usr/share/aurorae/themes/          window frame + traffic lights (glass and solid)
     usr/share/sddm/themes/ultron/      animated sign-in screen
     usr/bin/ultron-glass               glass on/off/auto
+    usr/bin/ultron-run-windows         opens .exe / .msi with Wine
     usr/share/color-schemes/           "Ultron Dark"
     usr/share/wallpapers/Ultron/       default wallpaper
     usr/share/plymouth/, usr/share/grub/   boot splash (the dot) and boot menu

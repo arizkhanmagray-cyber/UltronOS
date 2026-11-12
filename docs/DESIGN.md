@@ -86,6 +86,22 @@ network. The flow is trimmed to six screens. Decisions worth knowing:
 - After copying, `finalize-install` deletes the installer and live-only files,
   and the `packages` module removes `live-boot`, `live-config` and Calamares.
 
+## Windows programs
+
+Wine 10 from Debian is preinstalled, including the 32-bit half (`wine32:i386`
+plus 32-bit Mesa), because most installers and nearly all MSI custom actions
+are still 32-bit. That costs about 320 MB of ISO size and pushes a release
+build past GitHub's 2 GiB release-asset limit, which is why the ISO is offered
+as a workflow artifact.
+
+`.exe`/`.msi` are associated with `ultron-run-windows` rather than with Wine
+directly, for three reasons: it asks once per file before running something
+that has full access to the user's home; it routes `.msi` through `msiexec`;
+and it turns Wine's silent failures into a plain-language message that points
+to native apps and Bottles. Debian deliberately ships Wine without any file
+association; adding one is a convenience-versus-safety trade made on purpose
+here, with the prompt as the mitigation.
+
 ## Naming
 
 "Ultron" is also the name of a Marvel character, and Marvel holds trademarks on

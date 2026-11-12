@@ -1,0 +1,63 @@
+#!/bin/sh
+# ultron-run-windows FILE — opens a Windows program (.exe) or installer (.msi)
+# with Wine. This is what a double-click on such a file runs.
+set -u
+
+file="${1:-}"
+if [ -z "$file" ] || [ ! -f "$file" ]; then
+    echo "usage: ultron-run-windows FILE.exe|FILE.msi" >&2
+    exit 2
+fi
+file=$(realpath "$file")
+name=$(basename "$file")
+
+say()  { if command -v kdialog >/dev/null 2>&1; then kdialog --title "Windows programs" "$@"; else return 0; fi; }
+
+if ! command -v wine >/dev/null 2>&1; then
+    say --sorry "Windows support (Wine) is not installed on this system."
+    exit 1
+fi
+
+# Wine is a compatibility layer, not a sandbox: a Windows program runs with
+# the same access to your files as any other app. Ask once per file.
+state="${XDG_DATA_HOME:-$HOME/.local/share}/ultron"
+allowed="$state/windows-programs-allowed"
+key="$file|$(stat -c '%s|%Y' "$file")"
+mkdir -p "$state"
+if ! grep -qxF "$key" "$allowed" 2>/dev/null; then
+    say --warningcontinuecancel "\"$name\" is a Windows program.
+
+Ultron OS can run many Windows programs, but not all of them work.
+A Windows program can read and change the files in your home folder,
+so only open programs you trust." --continue-label "Open" || exit 0
+    printf '%s\n' "$key" >> "$allowed"
+fi
+
+export WINEDEBUG="${WINEDEBUG:--all}"
+prefix="${WINEPREFIX:-$HOME/.wine}"
+if [ ! -d "$prefix" ]; then
+    say --passivepopup "Setting up Windows support for first use. This takes a minute." 30 &
+    wineboot --init >/dev/null 2>&1 || true
+fi
+
+cd "$(dirname "$file")" || exit 1
+case "$name" in
+    *.[mM][sS][iI]) wine msiexec /i "$file" ;;
+    *)              wine "$file" ;;
+esac
+status=$?
+
+# 0 = fine; many installers also end with small non-zero codes after success
+# (reboot requested = 3010, user cancelled = 1602), so only report real failures.
+case "$status" in
+    0|66|194|1602|3010) ;;
+    *) say --sorry "\"$name\" did not run correctly (code $status).
+
+Not every Windows program works on Linux. Things that usually do not:
+games with anti-cheat, recent Microsoft Office and Adobe apps, and anything
+that installs a hardware driver.
+
+Look for a Linux version in Discover first, or try the Bottles app from
+Discover, which can apply per-program fixes." ;;
+esac
+exit "$status"

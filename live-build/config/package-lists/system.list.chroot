@@ -9,6 +9,7 @@ curl
 wget
 ca-certificates
 man-db
+util-linux-extra
 unzip
 zip
 7zip

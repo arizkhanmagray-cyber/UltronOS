@@ -26,10 +26,19 @@ Autolock=false
 LockOnResume=false
 CONF
 cat > /etc/xdg/powerdevilrc <<'CONF'
+[AC][Display]
+DimDisplayWhenIdle=false
+TurnOffDisplayWhenIdle=false
 [AC][SuspendAndShutdown]
 AutoSuspendAction=0
+[Battery][Display]
+DimDisplayWhenIdle=false
+TurnOffDisplayWhenIdle=false
 [Battery][SuspendAndShutdown]
 AutoSuspendAction=0
+[LowBattery][Display]
+DimDisplayWhenIdle=false
+TurnOffDisplayWhenIdle=false
 [LowBattery][SuspendAndShutdown]
 AutoSuspendAction=0
 CONF

@@ -1,0 +1,7 @@
+[Default Applications]
+application/vnd.microsoft.portable-executable=ultron-windows-program.desktop
+application/x-ms-dos-executable=ultron-windows-program.desktop
+application/x-msdos-program=ultron-windows-program.desktop
+application/x-msdownload=ultron-windows-program.desktop
+application/x-dosexec=ultron-windows-program.desktop
+application/x-msi=ultron-windows-program.desktop

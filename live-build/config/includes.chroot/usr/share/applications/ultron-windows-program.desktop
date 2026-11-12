@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Windows Program
+GenericName=Run Windows programs (Wine)
+Comment=Opens Windows .exe programs and .msi installers
+Exec=ultron-run-windows %f
+Icon=wine
+Terminal=false
+NoDisplay=true
+MimeType=application/vnd.microsoft.portable-executable;application/x-ms-dos-executable;application/x-msdos-program;application/x-msdownload;application/x-dosexec;application/x-msi;
