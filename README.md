@@ -41,10 +41,12 @@ automatically" there, step 2 is skipped.
 
 There is no pre-built download yet. Two ways to produce one:
 
-**Let GitHub build it.** Open the *Actions* tab of this repository, pick
-**Build ISO**, press **Run workflow**. After roughly 40 minutes the ISO is
-attached to the run as an artifact. Pushing a tag such as `v1.0` additionally
-publishes it as a GitHub Release.
+**Let GitHub build it.** The *Build ISO* workflow runs on every push that
+changes the OS definition, and on demand from the *Actions* tab (**Build ISO**
+→ **Run workflow**). After roughly 45 minutes the ISO is attached to the run as
+an artifact (scroll to the bottom of the run page). Pushing a tag such as
+`v1.0` also creates a GitHub Release; the ISO itself is attached to it only if
+it is under GitHub's 2 GiB per-file limit, which it currently is not.
 
 **Build it yourself** on any Linux machine with Docker and about 20 GB free:
 
@@ -56,6 +58,10 @@ ULTRON_COMPRESSION=zstd ./build.sh  # much faster build, slightly larger ISO
 ```
 
 ## Install it
+
+| Boot menu | Installer | File manager |
+|---|---|---|
+| ![Boot menu](docs/boot-menu.png) | ![Installer](docs/installer.png) | ![File manager](docs/files.png) |
 
 1. Write the ISO to a USB stick (4 GB or larger) with
    [balenaEtcher](https://etcher.balena.io/), [Rufus](https://rufus.ie/) (choose

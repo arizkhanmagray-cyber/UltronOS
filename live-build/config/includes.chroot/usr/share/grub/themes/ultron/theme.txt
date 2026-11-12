@@ -5,8 +5,8 @@ title-text: ""
 terminal-font: "Unifont Regular 16"
 
 + boot_menu {
-    left = 30%
-    width = 40%
+    left = 18%
+    width = 64%
     top = 44%
     height = 36%
     item_font = "Unifont Regular 16"
