@@ -52,10 +52,6 @@ def frame(prefix, ox, oy, fill_alpha, strength, mask=False):
         # invisible rect pinning the slice's bounding box
         return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#000" fill-opacity="0"/>'
 
-    # KSvg tiles frame edges unless told otherwise; tiling shows seams in the
-    # shadow gradient, stretching does not.
-    b.append(f'<rect id="{p}-hint-stretch-borders" x="{x1}" y="{y1}" width="1" height="1" fill="#000" fill-opacity="0"/>')
-
     if mask:
         # Blur region: opaque exactly where the window body is.
         solid = 'fill="#000"'
@@ -91,49 +87,62 @@ def frame(prefix, ox, oy, fill_alpha, strength, mask=False):
     d.append(f'<linearGradient id="{gid}_r" {U} x1="{x2}" y1="0" x2="{x2 + CW}" y2="0">{s}</linearGradient>')
 
     glass = f'fill="{FILL}" fill-opacity="{fill_alpha}"'
-    hi = f'fill="none" stroke="#fff" stroke-opacity="{RIM_LIGHT}" stroke-width="1"'
-    lo = f'fill="none" stroke="#000" stroke-opacity="{RIM_DARK * strength:.3f}" stroke-width="1"'
+    # Hairlines are filled shapes, never strokes: Qt pads the bounding box of a
+    # stroked path by half the pen width, which leaves a transparent sliver at
+    # the edge of every tiled slice (visible as tick marks along the frame).
+    hi = f'fill="#fff" fill-opacity="{RIM_LIGHT}"'
+    lo = f'fill="#000" fill-opacity="{RIM_DARK * strength:.3f}"'
     wt = y0 + PAD_T          # y of the window's top edge
     wl = x0 + PAD_L          # x of the window's left edge
     wr = x2 + RADIUS         # x of the window's right edge
+    R = RADIUS
+
+    def ring_tl(cx, cy, ro, ri):
+        return f'M{cx - ro} {cy}A{ro} {ro} 0 0 1 {cx} {cy - ro}L{cx} {cy - ri}A{ri} {ri} 0 0 0 {cx - ri} {cy}Z'
+
+    def ring_tr(cx, cy, ro, ri):
+        return f'M{cx} {cy - ro}A{ro} {ro} 0 0 1 {cx + ro} {cy}L{cx + ri} {cy}A{ri} {ri} 0 0 0 {cx} {cy - ri}Z'
+
+    def bar(x, y, w, h, paint):
+        return f'<rect {paint} x="{x}" y="{y}" width="{w}" height="{h}"/>'
 
     # Shadows are clipped to the outside of the window shape so the translucent
     # glass never sits on top of its own shadow.
     b.append(f'<g id="{p}-topleft">{box(x0, y0, CW, CT)}'
-             f'<path fill="url(#{gid}_tl)" d="M{x0} {y0}h{CW}v{PAD_T}a{RADIUS} {RADIUS} 0 0 0 {-RADIUS} {RADIUS}h{-PAD_L}z"/>'
-             f'<path {glass} d="M{x1} {wt}v{RADIUS}h{-RADIUS}a{RADIUS} {RADIUS} 0 0 1 {RADIUS} {-RADIUS}z"/>'
-             f'<path {lo} d="M{wl - .5} {y1}a{RADIUS + .5} {RADIUS + .5} 0 0 1 {RADIUS + .5} {-RADIUS - .5}"/>'
-             f'<path {hi} d="M{wl + .5} {y1}a{RADIUS - .5} {RADIUS - .5} 0 0 1 {RADIUS - .5} {-RADIUS + .5}"/></g>')
+             f'<path fill="url(#{gid}_tl)" d="M{x0} {y0}h{CW}v{PAD_T}a{R} {R} 0 0 0 {-R} {R}h{-PAD_L}z"/>'
+             f'<path {glass} d="M{x1} {wt}v{R}h{-R}a{R} {R} 0 0 1 {R} {-R}z"/>'
+             f'<path {lo} d="{ring_tl(x1, y1, R + 1, R)}"/>'
+             f'<path {hi} d="{ring_tl(x1, y1, R, R - 1)}"/></g>')
     b.append(f'<g id="{p}-top">{box(x1, y0, EDGE, CT)}'
              f'<rect fill="url(#{gid}_t)" x="{x1}" y="{y0}" width="{EDGE}" height="{PAD_T}"/>'
-             f'<rect {glass} x="{x1}" y="{wt}" width="{EDGE}" height="{RADIUS}"/>'
-             f'<path {lo} d="M{x1} {wt - .5}h{EDGE}"/><path {hi} d="M{x1} {wt + .5}h{EDGE}"/></g>')
+             f'<rect {glass} x="{x1}" y="{wt}" width="{EDGE}" height="{R}"/>'
+             + bar(x1, wt - 1, EDGE, 1, lo) + bar(x1, wt, EDGE, 1, hi) + '</g>')
     b.append(f'<g id="{p}-topright">{box(x2, y0, CW, CT)}'
-             f'<path fill="url(#{gid}_tr)" d="M{x2} {y0}h{CW}v{CT}h{-PAD_R}a{RADIUS} {RADIUS} 0 0 0 {-RADIUS} {-RADIUS}z"/>'
-             f'<path {glass} d="M{x2} {wt}a{RADIUS} {RADIUS} 0 0 1 {RADIUS} {RADIUS}h{-RADIUS}z"/>'
-             f'<path {lo} d="M{x2} {wt - .5}a{RADIUS + .5} {RADIUS + .5} 0 0 1 {RADIUS + .5} {RADIUS + .5}"/>'
-             f'<path {hi} d="M{x2} {wt + .5}a{RADIUS - .5} {RADIUS - .5} 0 0 1 {RADIUS - .5} {RADIUS - .5}"/></g>')
+             f'<path fill="url(#{gid}_tr)" d="M{x2} {y0}h{CW}v{CT}h{-PAD_R}a{R} {R} 0 0 0 {-R} {-R}z"/>'
+             f'<path {glass} d="M{x2} {wt}a{R} {R} 0 0 1 {R} {R}h{-R}z"/>'
+             f'<path {lo} d="{ring_tr(x2, y1, R + 1, R)}"/>'
+             f'<path {hi} d="{ring_tr(x2, y1, R, R - 1)}"/></g>')
     b.append(f'<g id="{p}-left">{box(x0, y1, CW, EDGE)}'
              f'<rect fill="url(#{gid}_l)" x="{x0}" y="{y1}" width="{PAD_L}" height="{EDGE}"/>'
-             f'<rect {glass} x="{wl}" y="{y1}" width="{RADIUS}" height="{EDGE}"/>'
-             f'<path {lo} d="M{wl - .5} {y1}v{EDGE}"/></g>')
+             f'<rect {glass} x="{wl}" y="{y1}" width="{R}" height="{EDGE}"/>'
+             + bar(wl - 1, y1, 1, EDGE, lo) + '</g>')
     b.append(f'<g id="{p}-center"><rect {glass} x="{x1}" y="{y1}" width="{EDGE}" height="{EDGE}"/></g>')
     b.append(f'<g id="{p}-right">{box(x2, y1, CW, EDGE)}'
              f'<rect fill="url(#{gid}_r)" x="{wr}" y="{y1}" width="{PAD_R}" height="{EDGE}"/>'
-             f'<rect {glass} x="{x2}" y="{y1}" width="{RADIUS}" height="{EDGE}"/>'
-             f'<path {lo} d="M{wr + .5} {y1}v{EDGE}"/></g>')
+             f'<rect {glass} x="{x2}" y="{y1}" width="{R}" height="{EDGE}"/>'
+             + bar(wr, y1, 1, EDGE, lo) + '</g>')
     b.append(f'<g id="{p}-bottomleft">{box(x0, y2, CW, CB)}'
-             f'<path fill="url(#{gid}_bl)" d="M{x0} {y2}h{PAD_L}v{INNER_B}h{RADIUS}v{PAD_B}h{-CW}z"/>'
-             f'<rect {glass} x="{wl}" y="{y2}" width="{RADIUS}" height="{INNER_B}"/>'
-             f'<path {lo} d="M{wl - .5} {y2}v{INNER_B + .5}h{RADIUS + .5}"/></g>')
+             f'<path fill="url(#{gid}_bl)" d="M{x0} {y2}h{PAD_L}v{INNER_B}h{R}v{PAD_B}h{-CW}z"/>'
+             f'<rect {glass} x="{wl}" y="{y2}" width="{R}" height="{INNER_B}"/>'
+             + bar(wl - 1, y2, 1, INNER_B + 1, lo) + bar(wl, y2 + INNER_B, R, 1, lo) + '</g>')
     b.append(f'<g id="{p}-bottom">{box(x1, y2, EDGE, CB)}'
              f'<rect fill="url(#{gid}_b)" x="{x1}" y="{y2 + INNER_B}" width="{EDGE}" height="{PAD_B}"/>'
              f'<rect {glass} x="{x1}" y="{y2}" width="{EDGE}" height="{INNER_B}"/>'
-             f'<path {lo} d="M{x1} {y2 + INNER_B + .5}h{EDGE}"/></g>')
+             + bar(x1, y2 + INNER_B, EDGE, 1, lo) + '</g>')
     b.append(f'<g id="{p}-bottomright">{box(x2, y2, CW, CB)}'
-             f'<path fill="url(#{gid}_br)" d="M{x2 + RADIUS} {y2}h{PAD_R}v{CB}h{-CW}v{-PAD_B}h{RADIUS}z"/>'
-             f'<rect {glass} x="{x2}" y="{y2}" width="{RADIUS}" height="{INNER_B}"/>'
-             f'<path {lo} d="M{x2} {y2 + INNER_B + .5}h{RADIUS + .5}v{-INNER_B - .5}"/></g>')
+             f'<path fill="url(#{gid}_br)" d="M{x2 + R} {y2}h{PAD_R}v{CB}h{-CW}v{-PAD_B}h{R}z"/>'
+             f'<rect {glass} x="{x2}" y="{y2}" width="{R}" height="{INNER_B}"/>'
+             + bar(x2, y2 + INNER_B, R, 1, lo) + bar(wr, y2, 1, INNER_B + 1, lo) + '</g>')
     return "\n".join(d), "\n".join(b)
 
 
@@ -153,7 +162,6 @@ def decoration_svg(alpha_active=FILL_ALPHA_ACTIVE, alpha_inactive=FILL_ALPHA_INA
         body.append(b)
     # Maximized windows: flat strip, no rounding, no shadow.
     my = len(rows) * (fh + gap)
-    body.append(f'<rect id="hint-stretch-borders" x="0" y="{my}" width="1" height="1" fill="#000" fill-opacity="0"/>')
     body.append(f'<g id="decoration-maximized-center"><rect x="0" y="{my}" width="{EDGE}" height="{EDGE}" fill="{FILL}" fill-opacity="{alpha_active}"/></g>')
     body.append(f'<g id="decoration-maximized-inactive-center"><rect x="{EDGE * 2}" y="{my}" width="{EDGE}" height="{EDGE}" fill="{FILL}" fill-opacity="{alpha_inactive}"/></g>')
     h = my + EDGE
