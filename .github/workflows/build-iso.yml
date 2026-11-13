@@ -3,13 +3,17 @@ name: Build ISO
 # Builds the installable Ultron OS image.
 #   * every push that changes the OS definition -> ISO as a workflow artifact
 #   * a tag like v1.0                           -> GitHub Release with the ISO (in parts if over 2 GiB)
-#   * "Run workflow" button                     -> on demand
+#   * "Run workflow" button                     -> on demand; tick "release" to publish one
 on:
   workflow_dispatch:
     inputs:
       version:
         description: Version string baked into the image
         default: "1.0"
+      release:
+        description: Also publish a GitHub Release (tag v<version>) with the ISO attached
+        type: boolean
+        default: false
   push:
     branches: ["**"]
     tags: ["v*"]
@@ -72,7 +76,12 @@ jobs:
           retention-days: 14
 
       - name: Publish the release
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || inputs.release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/publish-release.sh "${GITHUB_REF_NAME}" "${{ steps.v.outputs.version }}"
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          # A tag build releases that tag; a manual run creates tag v<version>
+          # on the commit that was built.
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then tag="${GITHUB_REF_NAME}"; else tag="v${VERSION}"; fi
+          RELEASE_TARGET="${GITHUB_SHA}" scripts/publish-release.sh "${tag}" "${VERSION}"

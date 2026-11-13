@@ -8,6 +8,7 @@
 # parts, with the exact commands to join them in the release notes.
 #
 #   DRY_RUN=1          prepare parts, checksums and notes, but do not publish
+#   RELEASE_TARGET     commit to tag when TAG does not exist yet
 #   ULTRON_OUT         folder holding the ISO (default: ./out)
 #   PART_LIMIT_BYTES   size from which the ISO is split (default 2 GiB)
 #   PART_SIZE          size of each part, as understood by split(1) (default 1900M)
@@ -72,5 +73,12 @@ if [ -n "${DRY_RUN:-}" ]; then
     exit 0
 fi
 
-gh release create "${tag}" "${files[@]}" SHA256SUMS \
+if gh release view "${tag}" >/dev/null 2>&1; then
+    echo "error: release ${tag} already exists; delete it or use a new version" >&2
+    exit 1
+fi
+
+target=()
+[ -n "${RELEASE_TARGET:-}" ] && target=(--target "${RELEASE_TARGET}")
+gh release create "${tag}" "${files[@]}" SHA256SUMS "${target[@]}" \
     --title "Ultron OS ${version}" --notes-file notes.md

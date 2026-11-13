@@ -56,8 +56,9 @@ to check the result.
 **Or take the latest build.** The *Build ISO* workflow runs on every push that
 changes the OS definition, and on demand from the *Actions* tab. The ISO is
 attached to the run as a single-file artifact (bottom of the run page; needs a
-GitHub login; kept for 14 days). Pushing a tag such as `v1.1` builds and
-publishes a new release.
+GitHub login; kept for 14 days). To publish a new release, run the workflow
+from the *Actions* tab with a new version number and **release** ticked, or
+push a tag such as `v1.1`.
 
 **Build it yourself** on any Linux machine with Docker and about 20 GB free:
 
